@@ -2,7 +2,7 @@ h5py==2.6.0
 Keras==1.2.2
 matplotlib==1.5.3
 numba==0.30.1
-numpy==1.12.0
+numpy==1.22.0
 pandas==0.18.1
 rasterio==1.0a5
 Shapely==1.5.17.post1
