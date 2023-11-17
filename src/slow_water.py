@@ -15,9 +15,9 @@ from tqdm import tqdm
 
 def stretch_8bit(bands, lower_percent=2, higher_percent=98):
     out = np.zeros_like(bands).astype(np.float32)
+    a = 0
+    b = 1
     for i in range(3):
-        a = 0
-        b = 1
         c = np.percentile(bands[:, :, i], lower_percent)
         d = np.percentile(bands[:, :, i], higher_percent)
         t = a + (bands[:, :, i] - c) * (b - a) / (d - c)
@@ -47,9 +47,7 @@ def CCCI_index(m, rgb):
     MIR = resize(m[7, :, :], (rgb.shape[0], rgb.shape[1]))
     R = rgb[:, :, 0]
 
-    # canopy chloropyll content index
-    CCCI = (MIR - RE) / (MIR + RE) * (MIR - R) / (MIR + R)
-    return CCCI
+    return (MIR - RE) / (MIR + RE) * (MIR - R) / (MIR + R)
 
 
 def mask2poly(predicted_mask, x_scaler, y_scaler):
@@ -63,10 +61,10 @@ def mask2poly(predicted_mask, x_scaler, y_scaler):
 
 result = []
 for image_id in tqdm(test_ids):
-    rgb = tiff.imread('../data/three_band/{}.tif'.format(image_id))
+    rgb = tiff.imread(f'../data/three_band/{image_id}.tif')
     _, height, width = rgb.shape
     rgb = np.rollaxis(rgb, 0, 3)
-    m = tiff.imread('../data/sixteen_band/{}_M.tif'.format(image_id))
+    m = tiff.imread(f'../data/sixteen_band/{image_id}_M.tif')
     # get our index
     CCCI = CCCI_index(m, rgb)
 

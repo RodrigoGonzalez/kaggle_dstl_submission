@@ -2,6 +2,7 @@
 Merge predictions
 """
 
+
 import pandas as pd
 
 submissions = {0: 'temp_building.csv',
@@ -21,9 +22,7 @@ sample_submission = pd.read_csv('../data/sample_submission.csv')
 
 sample_submission['MultipolygonWKT'] = 'MULTIPOLYGON EMPTY'
 
-for class_type in submissions.keys():
-    class_sub = submissions[class_type]
-
+for class_type, class_sub in submissions.items():
     index = sample_submission['ClassType'] == class_type + 1
     sample_submission.loc[index, 'MultipolygonWKT'] = class_sub.loc[index, 'MultipolygonWKT'].values
 

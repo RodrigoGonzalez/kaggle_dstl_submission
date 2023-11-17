@@ -52,10 +52,10 @@ def check_water(image_id, scores, class_i):
     size_x = img_m_aligned.shape[1]
     mask = generate_mask_for_image_and_class((size_y, size_x), image_id, class_i)
     pixel_num = np.sum(mask)
+    best_index_type = 'rei'
     if pixel_num > 0:
         score_max = 0
         best_thr = 0
-        best_index_type = 'rei'
         for index_type in indices:
             index = calc_index(img_m_aligned, index_type=index_type)
             for threshold in range(-200, 200, 1):
@@ -72,10 +72,8 @@ def check_water(image_id, scores, class_i):
     else:
         score_max = -1
         best_thr = -100
-        best_index_type = 'rei'
-
         scores.append((image_id, 'fast_water' if class_i == 7 else 'slow_water', 'no_index', -2, 'score', -1, 0))
-        # print('ImageId {} doesn''t have enough water pixels of fast type. Water pixels {}'.format(image_id, pixel_num))
+            # print('ImageId {} doesn''t have enough water pixels of fast type. Water pixels {}'.format(image_id, pixel_num))
 
     return pixel_num,score_max, best_index_type, best_thr
 
@@ -83,8 +81,7 @@ def check_water(image_id, scores, class_i):
 def np_jaccard(y_true, y_pred):
     intersection = np.sum(y_true * y_pred)
     sum_ = np.sum(y_true + y_pred)
-    jac = (intersection + smooth) / (sum_ - intersection + smooth)
-    return jac
+    return (intersection + smooth) / (sum_ - intersection + smooth)
 
 
 def threshold_index(image_id, index_type, threshold, less=True):
@@ -102,14 +99,17 @@ def threshold_index(image_id, index_type, threshold, less=True):
 def load_m(image_id):
     #TODO: warp_matrices_translate_3_m.pkl provided as part of the solution, to reproduce use correct_misalignment_only_m.py
     warp_matrices = pd.read_pickle('warp_matrices_translate_3_m.pkl')
-    img_m = np.transpose(tiff.imread("sixteen_band/{}_{}.tif".format(image_id, 'M')), (1, 2, 0))
+    img_m = np.transpose(tiff.imread(f"sixteen_band/{image_id}_M.tif"), (1, 2, 0))
     raster_size = img_m.shape
     border_mode = cv2.BORDER_REFLECT
     warp_matrix_3_m = warp_matrices[warp_matrices.image_id == image_id].warp_matrix_3_m.values[0]
-    img_m_aligned = cv2.warpAffine(img_m, warp_matrix_3_m, (raster_size[1], raster_size[0]),
-                                   flags=cv2.INTER_CUBIC + cv2.WARP_INVERSE_MAP,
-                                   borderMode=border_mode)
-    return img_m_aligned
+    return cv2.warpAffine(
+        img_m,
+        warp_matrix_3_m,
+        (raster_size[1], raster_size[0]),
+        flags=cv2.INTER_CUBIC + cv2.WARP_INVERSE_MAP,
+        borderMode=border_mode,
+    )
 
 
 def calc_index(raster, index_type='ndvi'):
@@ -147,8 +147,8 @@ def stich_5_by_5_native_size(scene_id):
     tmp_row = []
     for j in range(0,5):
         for i in range(0, 5):
-            image_id = '{}_{}_{}'.format(scene_id, j,i)
-            tmp_3 = np.transpose(tiff.imread("sixteen_band/{}_M.tif".format(image_id)), (1, 2, 0))
+            image_id = f'{scene_id}_{j}_{i}'
+            tmp_3 = np.transpose(tiff.imread(f"sixteen_band/{image_id}_M.tif"), (1, 2, 0))
             size_x[j, i] = tmp_3.shape[1]
             size_y[j, i] = tmp_3.shape[0]
             tmp_row.append(tmp_3)
@@ -176,24 +176,22 @@ def save_5_5_index(scene_id, index_type='ndvi'):
     index = calc_index(image, index_type)
     plt.figure(figsize=(20, 20))
     plt.imshow(index, cmap='RdYlGn')
-    plt.savefig('scenes/{}_{}.png'.format(scene_id, index_type))
+    plt.savefig(f'scenes/{scene_id}_{index_type}.png')
     plt.clf()
 
 def calc_and_save_hists(scene_id, index_type='ndvi', print_min_max = False):
     image = big_pic(scene_id)
     index = calc_index(image, index_type)
     if print_min_max:
-        print(scene_id,
-              'index:{}, min:{}, max:{}, percentile:{}, mean:{}'.format(index_type,
-                                                         np.min(index),
-                                                         np.max(index),
-                                                         np.percentile(index, 1),
-                                                         np.mean(index)))
+        print(
+            scene_id,
+            f'index:{index_type}, min:{np.min(index)}, max:{np.max(index)}, percentile:{np.percentile(index, 1)}, mean:{np.mean(index)}',
+        )
         return
     plt.figure(figsize=(20, 20))
     # plt.imshow(index, cmap='RdYlGn')
     plt.hist(index.flatten(), bins=255, range=(-2, 2) )
-    plt.savefig('scenes/hist{}_{}.png'.format(scene_id, index_type))
+    plt.savefig(f'scenes/hist{scene_id}_{index_type}.png')
     plt.close()
 
 
@@ -214,30 +212,30 @@ def calc_thresholds_from_train():
 
 def heur_water(image_id):
 
-    # thresholds calculated from train, using jaccard between thresholded index and mask
-    # train_thresholds = find_index_and_threshhold()
-    # hardcoded results from above to save computation time
-    train_thresholds = {
-        '6060': ('ndvi2', -0.2),
-        '6070': ('ndvi2', -0.02),
-        '6090': ('rei', -0.73),
-        '6100': ('ndvi2', -0.05),
-        '6110': ('rei', -1.7),
-        '6120': ('rei', -0.61),
-        '6140': ('rei', -0.67),
-        '6150': ('rei', -0.6),
-        '6170': ('ndvi2', -0.06)
-    }
-
-
-    # list of scenes without water in train images, assume no water on them
-    no_water_in_train = ['6010', '6040', '6160']
-
     # three very similar scenes, where green pixels > 1e7 and water pixels > 1e6
     river_scenes = ['6050', '6070', '6080']
 
     scene_id = image_id[:4]
     if scene_id in scenes_in_train or scene_id in river_scenes:
+        # thresholds calculated from train, using jaccard between thresholded index and mask
+        # train_thresholds = find_index_and_threshhold()
+        # hardcoded results from above to save computation time
+        train_thresholds = {
+            '6060': ('ndvi2', -0.2),
+            '6070': ('ndvi2', -0.02),
+            '6090': ('rei', -0.73),
+            '6100': ('ndvi2', -0.05),
+            '6110': ('rei', -1.7),
+            '6120': ('rei', -0.61),
+            '6140': ('rei', -0.67),
+            '6150': ('rei', -0.6),
+            '6170': ('ndvi2', -0.06)
+        }
+
+
+        # list of scenes without water in train images, assume no water on them
+        no_water_in_train = ['6010', '6040', '6160']
+
         if scene_id in no_water_in_train:
             # quick and dirty to select no pixels
             index_type = 'rei'
@@ -258,11 +256,7 @@ def heur_water(image_id):
         index = calc_index(img_m_aligned, index_type)
         # there are two different types of images: with distribution skewed left and right
         # and from train we see that the best threshold for them is about -1.7 and (-0.7, -0.6)
-        if np.min(index) < -1.7:
-            threshold = -1.7
-        else:
-            threshold = -0.6 # lean to higher threashold because FP pixels are cheaper then FN in metric
-
+        threshold = -1.7 if np.min(index) < -1.7 else -0.6
     return index_type, threshold
 
 
@@ -272,19 +266,7 @@ def make_water_submit_heur():
     for idx, row in df.iterrows():
         image_id = row[0]
         class_i = row[1] - 1
-        if class_i == 7:
-            index_type, threshold = heur_water(image_id)
-            if threshold == -100:
-                df.iloc[idx, 2] = 'MULTIPOLYGON EMPTY'
-                continue
-            mask = threshold_index(image_id, index_type, threshold)
-            if np.sum(mask) > 10 and np.sum(mask) < 7000 or image_id[:4] == '6100':
-                pred_polygons = mask_to_polygons(mask, epsilon=0, buffer_amount=3)
-                print(image_id, np.sum(mask), index_type, threshold)
-            else:
-                df.iloc[idx, 2] = 'MULTIPOLYGON EMPTY'
-                continue
-        elif class_i == 6:
+        if class_i == 6:
             index_type, threshold = heur_water(image_id)
             if threshold == -100:
                 df.iloc[idx, 2] = 'MULTIPOLYGON EMPTY'
@@ -292,11 +274,23 @@ def make_water_submit_heur():
             mask = threshold_index(image_id, index_type, threshold)
             if np.sum(mask) > 7000 and image_id[:4] != '6100':
                 # for some reason '6150_4_3' don't want to become nice polygon without epsilon
-                if image_id == '6150_4_3':
-                    pred_polygons = mask_to_polygons(mask, epsilon=3, min_area=15)
-                else:
-                    pred_polygons = mask_to_polygons(mask, epsilon=0, min_area=15)
-
+                pred_polygons = (
+                    mask_to_polygons(mask, epsilon=3, min_area=15)
+                    if image_id == '6150_4_3'
+                    else mask_to_polygons(mask, epsilon=0, min_area=15)
+                )
+                print(image_id, np.sum(mask), index_type, threshold)
+            else:
+                df.iloc[idx, 2] = 'MULTIPOLYGON EMPTY'
+                continue
+        elif class_i == 7:
+            index_type, threshold = heur_water(image_id)
+            if threshold == -100:
+                df.iloc[idx, 2] = 'MULTIPOLYGON EMPTY'
+                continue
+            mask = threshold_index(image_id, index_type, threshold)
+            if np.sum(mask) > 10 and np.sum(mask) < 7000 or image_id[:4] == '6100':
+                pred_polygons = mask_to_polygons(mask, epsilon=0, buffer_amount=3)
                 print(image_id, np.sum(mask), index_type, threshold)
             else:
                 df.iloc[idx, 2] = 'MULTIPOLYGON EMPTY'
@@ -314,7 +308,7 @@ def make_water_submit_heur():
                                                       origin=(0, 0, 0))
         df.iloc[idx, 2] = shapely.wkt.dumps(scaled_pred_polygons)
 
-    df.to_csv('../{}_indices.csv'.format('water_auto'), index=False)
+    df.to_csv('../water_auto_indices.csv', index=False)
 
 scenes_in_train = set()
 for image_id in train_ids:

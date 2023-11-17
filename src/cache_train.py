@@ -44,8 +44,7 @@ def cache_train_16():
 
     ids = []
 
-    i = 0
-    for image_id in tqdm(sorted(train_wkt['ImageId'].unique())):
+    for i, image_id in enumerate(tqdm(sorted(train_wkt['ImageId'].unique()))):
         image = extra_functions.read_image_16(image_id)
         _, height, width = image.shape
 
@@ -57,8 +56,6 @@ def cache_train_16():
                                                      train=train_wkt)[:, :min_train_height, :min_train_width]
 
         ids += [image_id]
-        i += 1
-
     # fix from there: https://github.com/h5py/h5py/issues/441
     f['train_ids'] = np.array(ids).astype('|S9')
 

@@ -14,9 +14,9 @@ rcParams['figure.figsize'] = 20, 20
 
 def stretch_8bit(bands, lower_percent=2, higher_percent=98):
     out = np.zeros_like(bands).astype(np.float32)
+    a = 0
+    b = 1
     for i in range(3):
-        a = 0
-        b = 1
         c = np.percentile(bands[:, :, i], lower_percent)
         d = np.percentile(bands[:, :, i], higher_percent)
         t = a + (bands[:, :, i] - c) * (b - a) / (d - c)
@@ -93,7 +93,9 @@ df = pd.read_csv('cleaned_joined.csv')
 print(df.head())
 
 # grid size will also be needed later..
-gs = pd.read_csv(inDir + '/grid_sizes.csv', names=['ImageId', 'Xmax', 'Ymin'], skiprows=1)
+gs = pd.read_csv(
+    f'{inDir}/grid_sizes.csv', names=['ImageId', 'Xmax', 'Ymin'], skiprows=1
+)
 print(gs.head())
 
 # imageIds in a DataFrame
@@ -105,12 +107,12 @@ def get_image_names(imageId):
     '''
     Get the names of the tiff files
     '''
-    d = {'3': '{}/three_band/{}.tif'.format(inDir, imageId),
-         'A': '{}/sixteen_band/{}_A.tif'.format(inDir, imageId),
-         'M': '{}/sixteen_band/{}_M.tif'.format(inDir, imageId),
-         'P': '{}/sixteen_band/{}_P.tif'.format(inDir, imageId),
-         }
-    return d
+    return {
+        '3': f'{inDir}/three_band/{imageId}.tif',
+        'A': f'{inDir}/sixteen_band/{imageId}_A.tif',
+        'M': f'{inDir}/sixteen_band/{imageId}_M.tif',
+        'P': f'{inDir}/sixteen_band/{imageId}_P.tif',
+    }
 
 
 def get_images(imageId, img_key=None):
@@ -174,9 +176,13 @@ def plot_polygons(fig, ax, polygonsList):
     '''
     legend_patches = []
     for cType in polygonsList:
-        print('{} : {} \tcount = {}'.format(cType, CLASSES[cType], len(polygonsList[cType])))
-        legend_patches.append(Patch(color=COLORS[cType],
-                                    label='{} ({})'.format(CLASSES[cType], len(polygonsList[cType]))))
+        print(f'{cType} : {CLASSES[cType]} \tcount = {len(polygonsList[cType])}')
+        legend_patches.append(
+            Patch(
+                color=COLORS[cType],
+                label=f'{CLASSES[cType]} ({len(polygonsList[cType])})',
+            )
+        )
         for polygon in polygonsList[cType]:
             mpl_poly = PolygonPatch(polygon,
                                     color=COLORS[cType],
@@ -195,9 +201,9 @@ def plot_polygons(fig, ax, polygonsList):
 def stretch_n(bands, lower_percent=2, higher_percent=98):
     out = np.zeros_like(bands).astype(np.float32)
     n = bands.shape[0]
+    a = 0  # np.min(band)
+    b = 1  # np.max(band)
     for i in range(n):
-        a = 0  # np.min(band)
-        b = 1  # np.max(band)
         c = np.percentile(bands[i, :, :], lower_percent)
         d = np.percentile(bands[i, :, :], higher_percent)
         t = a + (bands[i, :, :] - c) * (b - a) / (d - c)
@@ -282,7 +288,7 @@ def visualize_image(imageId, plot_all=True):
         fig, axArr = plt.subplots(figsize=(20, 20))
         ax = axArr
     if is_training_image(imageId):
-        print('ImageId : {}'.format(imageId))
+        print(f'ImageId : {imageId}')
         polygonsList = {}
         for cType in CLASSES.keys():
             all_polygons = wkt_loads(df_image[df_image.ClassType == cType].MultipolygonWKT.values[0])

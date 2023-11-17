@@ -34,10 +34,10 @@ def _align_two_rasters(channel_1, channel_2, warp_mode):
 
 def stretch_n(bands, channels, lower_percent=0, higher_percent=100):
     out = np.zeros_like(bands).astype(np.float32)
+    a = 0  # np.min(band)
+    b = 1  # np.max(band)
     # n = bands.shape[2]
     for i in range(channels):
-        a = 0  # np.min(band)
-        b = 1  # np.max(band)
         if channels > 1:
             c = np.percentile(bands[:, :, i], lower_percent)
             d = np.percentile(bands[:, :, i], higher_percent)
@@ -84,10 +84,14 @@ test_ids = ('6120_2_4',
 
 
 def process_images(image_id):
-    print('Processing ImageId: {}'.format(image_id))
+    print(f'Processing ImageId: {image_id}')
     t0 = time.time()
-    img_3_original = np.transpose(tiff.imread("three_band/{}.tif".format(image_id)), (1, 2, 0)).astype(np.float32)
-    img_m_original = np.transpose(tiff.imread("sixteen_band/{}_{}.tif".format(image_id, 'M')), (1, 2, 0)).astype(np.float32)
+    img_3_original = np.transpose(
+        tiff.imread(f"three_band/{image_id}.tif"), (1, 2, 0)
+    ).astype(np.float32)
+    img_m_original = np.transpose(
+        tiff.imread(f"sixteen_band/{image_id}_M.tif"), (1, 2, 0)
+    ).astype(np.float32)
     raster_size = img_m_original.shape
     img_3_original = cv2.resize(img_3_original, (raster_size[1], raster_size[0]), interpolation=cv2.INTER_CUBIC)
 
@@ -95,7 +99,7 @@ def process_images(image_id):
     channel_m = img_m_original[:, :, 2]
 
     t1 = time.time()
-    print('Loading and resizing time: {}'.format(t1-t0))
+    print(f'Loading and resizing time: {t1 - t0}')
 
     cc_3_m = 0
     warp_mode = cv2.MOTION_TRANSLATION
@@ -109,18 +113,18 @@ def process_images(image_id):
         #                                flags=cv2.INTER_CUBIC + cv2.WARP_INVERSE_MAP,
         #                                borderMode=cv2.BORDER_TRANSPARENT)
     except:
-        print('ImageId={} 3 to M align failed'.format(image_id))
+        print(f'ImageId={image_id} 3 to M align failed')
 
     print('ImageId={}, cc_3_m={:.2f}'.format(image_id, cc_3_m))
     t2 = time.time()
-    print('Aligning time: {}'.format(t2-t1))
+    print(f'Aligning time: {t2 - t1}')
 
     t3 = time.time()
-    print('Full 20 image dumping time: {}'.format(t3-t2))
+    print(f'Full 20 image dumping time: {t3 - t2}')
 
     t4 = time.time()
-    print('Test image saving time: {}'.format(t4-t3))
-    print('Total time: {}'.format(t4-t0))
+    print(f'Test image saving time: {t4 - t3}')
+    print(f'Total time: {t4 - t0}')
     return image_id, warp_matrix_3_m, cc_3_m, t4 - t0
 
 if __name__ == '__main__':
@@ -135,5 +139,5 @@ if __name__ == '__main__':
     #     print(result)
     df = pd.DataFrame(results, columns=['image_id', 'warp_matrix_3_m',  'cc_3_m', 'time'])
 
-    df.to_pickle('data/warp_matrices_translate_3_m_{}.pkl'.format(time.time()))
+    df.to_pickle(f'data/warp_matrices_translate_3_m_{time.time()}.pkl')
     print('Success!')

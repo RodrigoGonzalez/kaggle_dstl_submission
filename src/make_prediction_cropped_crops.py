@@ -41,8 +41,7 @@ result = []
 def flip_axis(x, axis):
     x = np.asarray(x).swapaxes(axis, 0)
     x = x[::-1, ...]
-    x = x.swapaxes(0, axis)
-    return x
+    return x.swapaxes(0, axis)
 
 
 @jit

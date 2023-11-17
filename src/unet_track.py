@@ -133,16 +133,13 @@ def get_unet0():
     conv9 = keras.layers.advanced_activations.ELU()(conv9)
     conv10 = Convolution2D(num_mask_channels, 1, 1, activation='sigmoid')(conv9)
 
-    model = Model(input=inputs, output=conv10)
-
-    return model
+    return Model(input=inputs, output=conv10)
 
 
 def flip_axis(x, axis):
     x = np.asarray(x).swapaxes(axis, 0)
     x = x[::-1, ...]
-    x = x.swapaxes(0, axis)
-    return x
+    return x.swapaxes(0, axis)
 
 
 def form_batch(X, y, batch_size):
@@ -220,11 +217,11 @@ if __name__ == '__main__':
     data_path = '../data'
     now = datetime.datetime.now()
 
-    print('[{}] Creating and compiling model...'.format(str(datetime.datetime.now())))
+    print(f'[{str(datetime.datetime.now())}] Creating and compiling model...')
 
     model = get_unet0()
 
-    print('[{}] Reading train...'.format(str(datetime.datetime.now())))
+    print(f'[{str(datetime.datetime.now())}] Reading train...')
     f = h5py.File(os.path.join(data_path, 'train_16.h5'), 'r')
 
     X_train = np.array(f['train'])
@@ -254,7 +251,6 @@ if __name__ == '__main__':
         model.load_weights('unet_tmp.hdf5')
     except:
         print('No checkpoint, passing')
-        pass
     model.compile(optimizer=Nadam(lr=1e-3), loss=jaccard_coef_loss, metrics=['binary_crossentropy', jaccard_coef_int])
     suffix = 'track_3_'
     model.fit_generator(batch_generator(X_train, y_train, batch_size, horizontal_flip=True, vertical_flip=True, swap_axis=True),

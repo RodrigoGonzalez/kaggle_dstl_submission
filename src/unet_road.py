@@ -134,16 +134,13 @@ def get_unet0():
     conv9 = keras.layers.advanced_activations.ELU()(conv9)
     conv10 = Convolution2D(num_mask_channels, 1, 1, activation='sigmoid')(conv9)
 
-    model = Model(input=inputs, output=conv10)
-
-    return model
+    return Model(input=inputs, output=conv10)
 
 
 def flip_axis(x, axis):
     x = np.asarray(x).swapaxes(axis, 0)
     x = x[::-1, ...]
-    x = x.swapaxes(0, axis)
-    return x
+    return x.swapaxes(0, axis)
 
 
 def form_batch(X, y, batch_size):
@@ -244,11 +241,11 @@ if __name__ == '__main__':
     data_path = '../data'
     now = datetime.datetime.now()
 
-    print('[{}] Creating and compiling model...'.format(str(datetime.datetime.now())))
+    print(f'[{str(datetime.datetime.now())}] Creating and compiling model...')
 
     model = get_unet0()
 
-    print('[{}] Reading train...'.format(str(datetime.datetime.now())))
+    print(f'[{str(datetime.datetime.now())}] Reading train...')
     f = h5py.File(os.path.join(data_path, 'train_16.h5'), 'r')
 
     X_train = f['train']

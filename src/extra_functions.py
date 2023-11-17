@@ -198,9 +198,24 @@ def get_shape(image_id, band=3):
 
 
 def read_image_16(image_id):
-    img_m = np.transpose(tiff.imread("../data/sixteen_band/{}_M.tif".format(image_id)), (1, 2, 0)) / 2047.0
-    img_3 = np.transpose(tiff.imread("../data/three_band/{}.tif".format(image_id)), (1, 2, 0)) / 2047.0
-    img_p = tiff.imread("../data/sixteen_band/{}_P.tif".format(image_id)).astype(np.float32) / 2047.0
+    img_m = (
+        np.transpose(
+            tiff.imread(f"../data/sixteen_band/{image_id}_M.tif"), (1, 2, 0)
+        )
+        / 2047.0
+    )
+    img_3 = (
+        np.transpose(
+            tiff.imread(f"../data/three_band/{image_id}.tif"), (1, 2, 0)
+        )
+        / 2047.0
+    )
+    img_p = (
+        tiff.imread(f"../data/sixteen_band/{image_id}_P.tif").astype(
+            np.float32
+        )
+        / 2047.0
+    )
 
     height, width, _ = img_3.shape
 

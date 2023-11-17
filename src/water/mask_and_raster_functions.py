@@ -20,8 +20,7 @@ def _convert_coordinates_to_raster(coords, img_size, xymax):
     yf = H1 / Ymax
     coords[:, 1] *= yf
     coords[:, 0] *= xf
-    coords_int = np.round(coords).astype(np.int32)
-    return coords_int
+    return np.round(coords).astype(np.int32)
 
 
 def _get_xmax_ymin(grid_sizes_panda, imageId):
@@ -91,10 +90,7 @@ def generate_mask_for_image_and_class(raster_size, imageId, class_type, grid_siz
     #     polygon_list = polygon_list.buffer(5e-5)
     #     polygon_list = MultiPolygon([polygon_list])
     contours = _get_and_convert_contours(polygon_list, raster_size, xymax)
-    mask = _plot_mask_from_contours(raster_size, contours, 1)
-    # print('In generate_mask_for_image_and_class type is:', mask.dtype, 'shape:', mask.shape)
-
-    return mask
+    return _plot_mask_from_contours(raster_size, contours, 1)
 
 
 
@@ -150,19 +146,20 @@ def mask_to_polygons(mask, epsilon=1, min_area=1., engine='opencv', buffer_amoun
                 all_polygons.append(poly)
                 # approximating polygons might have created invalid ones, fix them
     else:
-        all_polygons = []
-        for shape, value in features.shapes(mask.astype(np.int16),
-                                            mask=(mask == 1),
-                                            transform=rasterio.Affine(1.0, 0, 0, 0, 1.0, 0)):
-            all_polygons.append(shapely.geometry.shape(shape))
-
+        all_polygons = [
+            shapely.geometry.shape(shape)
+            for shape, value in features.shapes(
+                mask.astype(np.int16),
+                mask=(mask == 1),
+                transform=rasterio.Affine(1.0, 0, 0, 0, 1.0, 0),
+            )
+        ]
     all_polygons = MultiPolygon(all_polygons)
-    if True:  # not all_polygons.is_valid:
-        all_polygons = all_polygons.buffer(buffer_amount)
-        # Sometimes buffer() converts a simple Multipolygon to just a Polygon,
-        # need to keep it a Multi throughout
-        if all_polygons.type == 'Polygon':
-            all_polygons = MultiPolygon([all_polygons])
+    all_polygons = all_polygons.buffer(buffer_amount)
+    # Sometimes buffer() converts a simple Multipolygon to just a Polygon,
+    # need to keep it a Multi throughout
+    if all_polygons.type == 'Polygon':
+        all_polygons = MultiPolygon([all_polygons])
     return all_polygons
 
 

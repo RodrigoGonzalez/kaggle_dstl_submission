@@ -5,8 +5,10 @@ import numpy as np
 
 N_Cls = 10
 inDir = '../../data'
-DF = pd.read_csv(inDir + '/train_wkt_v4.csv')
-GS = pd.read_csv(inDir + '/grid_sizes.csv', names=['ImageId', 'Xmax', 'Ymin'], skiprows=1)
+DF = pd.read_csv(f'{inDir}/train_wkt_v4.csv')
+GS = pd.read_csv(
+    f'{inDir}/grid_sizes.csv', names=['ImageId', 'Xmax', 'Ymin'], skiprows=1
+)
 SB = pd.read_csv('sample_submission.csv')
 smooth = 1e-12
 
@@ -89,6 +91,6 @@ model_type = 'unet'
 
 
 
-weights_path = 'weights/{}_{}_{}_{}_{}_last'.format(model_type, CLASSES[CURRENT_CLASS], channels, channels_count, weighting)
+weights_path = f'weights/{model_type}_{CLASSES[CURRENT_CLASS]}_{channels}_{channels_count}_{weighting}_last'
 # weights_path = 'weights/unet_10_last9_0.32'
 trs = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
